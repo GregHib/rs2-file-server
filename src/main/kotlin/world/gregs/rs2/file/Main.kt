@@ -51,6 +51,6 @@ fun main() {
     val network = Network(fileServer, prefetchKeys, revision)
     logger.info { "Loading complete [${System.currentTimeMillis() - start}ms]" }
     val runtime = Runtime.getRuntime()
-    runtime.addShutdownHook(thread { network.stop() })
+    runtime.addShutdownHook(thread(start = false) { network.stop() })
     network.start(port, threads)
 }
