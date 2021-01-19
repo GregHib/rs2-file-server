@@ -4,11 +4,14 @@ buildscript {
     }
     dependencies {
         classpath(kotlin("gradle-plugin", version = "1.4.21"))
+        classpath("me.champeau.gradle:jmh-gradle-plugin:0.5.0")
     }
 }
 
 plugins {
     kotlin("jvm") version "1.4.21"
+    id("me.champeau.gradle.jmh") version "0.5.0"
+    kotlin("plugin.allopen") version "1.4.21"
 }
 
 group = "world.gregs.rs2.file"
@@ -28,10 +31,27 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.2.3")
     implementation("com.michael-bull.kotlin-inline-logger:kotlin-inline-logger-jvm:1.0.2")
 
+    jmh("org.openjdk.jmh:jmh-core:1.21")
+    jmh("org.openjdk.jmh:jmh-generator-annprocess:1.21")
+
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.4.2")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.6.2")
     testImplementation("io.mockk:mockk:1.10.0")
+}
+
+sourceSets {
+    named("jmh") {
+        compileClasspath += main.get().runtimeClasspath
+    }
+}
+
+jmh {
+    duplicateClassesStrategy = DuplicatesStrategy.WARN
+}
+
+allOpen {
+    annotation("org.openjdk.jmh.annotations.State")
 }
 
 tasks {
