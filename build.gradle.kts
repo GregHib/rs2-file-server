@@ -12,7 +12,7 @@ plugins {
 }
 
 group = "world.gregs.rs2.file"
-group = "1.0-SNAPSHOP"
+group = "1.0.0"
 
 repositories {
     mavenCentral()
