@@ -29,6 +29,7 @@ dependencies {
     implementation("com.michael-bull.kotlin-inline-logger:kotlin-inline-logger-jvm:1.0.2")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.6.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.4.2")
     testImplementation("org.junit.jupiter:junit-jupiter-params:5.6.2")
     testImplementation("io.mockk:mockk:1.10.0")
 }

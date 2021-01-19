@@ -3,6 +3,7 @@ package world.gregs.rs2.file
 import com.displee.cache.CacheLibrary
 import com.github.michaelbull.logging.InlineLogger
 import io.ktor.utils.io.*
+import kotlin.math.min
 
 class FileServer(
     private val cache: CacheLibrary,
@@ -17,19 +18,59 @@ class FileServer(
         val value = read.readUMedium()
         val index = value shr 16
         val archive = value and 0xffff
-        val data = getData(index, archive) ?: return logger.trace { "Unable to fulfill request $index $archive $prefetch." }
-        serve(write, index, archive, data)
+        val data = data(index, archive) ?: return logger.trace { "Unable to fulfill request $index $archive $prefetch." }
+        serve(write, index, archive, data, prefetch)
     }
 
-    fun getData(indexId: Int, archiveId: Int): ByteArray? {
-        if (indexId == 255 && archiveId == 255) {
+    /**
+     * @return data for an [index]'s [archive] file or [versionTable] when index and archive are both 255
+     */
+    fun data(index: Int, archive: Int): ByteArray? {
+        if (index == 255 && archive == 255) {
             return versionTable
         }
-        val index = if (indexId == 255) cache.index255 else cache.index(indexId)
-        return index?.readArchiveSector(archiveId)?.data
+        return if (index == 255)
+            cache.index255?.readArchiveSector(archive)?.data
+        else
+            cache.index(index).readArchiveSector(archive)?.data
     }
 
-    suspend fun serve(write: ByteWriteChannel, index: Int, archive: Int, data: ByteArray) {
-        TODO("Not yet implemented")
+    /**
+     * Writes response header followed by the contents of [data] to [write]
+     */
+    suspend fun serve(write: ByteWriteChannel, index: Int, archive: Int, data: ByteArray, prefetch: Boolean) {
+        logger.trace { "Serving file $index $archive." }
+        val compression = data[0].toInt()
+        val size = getInt(data[1], data[2], data[3], data[4]) + if (compression != 0) 8 else 4
+        write.writeByte(index)
+        write.writeShort(archive)
+        write.writeByte(if (prefetch) compression or 0x80 else compression)
+        serve(write, HEADER, data, OFFSET, size, SPLIT)
+    }
+
+    /**
+     * Writes [source] [offset] [size] to [write] and starting at [headerSize] inserting a [SEPARATOR] every [split] bytes
+     */
+    suspend fun serve(write: ByteWriteChannel, headerSize: Int, source: ByteArray, offset: Int, size: Int, split: Int) {
+        var length = min(size, split - headerSize)
+        write.writeFully(source, offset, length)
+        var written = length
+        while (written < size) {
+            write.writeByte(SEPARATOR)
+
+            length = if (size - written < split) size - written else split - 1
+            write.writeFully(source, written + offset, length)
+            written += length
+        }
+    }
+
+    companion object {
+
+        private fun getInt(b1: Byte, b2: Byte, b3: Byte, b4: Byte) = b1.toInt() shl 24 or (b2.toInt() and 0xff shl 16) or (b3.toInt() and 0xff shl 8) or (b4.toInt() and 0xff)
+
+        private const val SEPARATOR = 255
+        private const val HEADER = 4
+        private const val SPLIT = 512
+        private const val OFFSET = 1
     }
 }
