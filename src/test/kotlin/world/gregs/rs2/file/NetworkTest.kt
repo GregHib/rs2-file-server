@@ -19,7 +19,7 @@ internal class NetworkTest {
     fun `Connect, sync, ack and fulfill`() = runBlocking {
         mockkStatic("world.gregs.rs2.file.JagexTypesKt")
         mockkStatic("io.ktor.network.sockets.SocketsKt")
-        val network = spyk(Network(mockk(), byteArrayOf(), intArrayOf(), 0))
+        val network = spyk(Network(mockk(), intArrayOf(), 0))
         val socket: Socket = mockk()
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
@@ -44,7 +44,7 @@ internal class NetworkTest {
     fun `Failed ack won't fulfill`() = runBlocking {
         mockkStatic("world.gregs.rs2.file.JagexTypesKt")
         mockkStatic("io.ktor.network.sockets.SocketsKt")
-        val network = spyk(Network(mockk(), byteArrayOf(), intArrayOf(), 0))
+        val network = spyk(Network(mockk(), intArrayOf(), 0))
         val socket: Socket = mockk()
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
@@ -71,7 +71,7 @@ internal class NetworkTest {
     fun `Synchronise client and server`() = runBlocking {
         val revision = 1337
         val keys = intArrayOf(0xffff, 0xfff, 0xff, 0xf)
-        val network = Network(mockk(), byteArrayOf(), keys, revision)
+        val network = Network(mockk(), keys, revision)
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
 
@@ -95,7 +95,7 @@ internal class NetworkTest {
     @Test
     fun `Fail to synchronise with wrong revision`() = runBlocking {
         val revision = 10
-        val network = Network(mockk(), byteArrayOf(), intArrayOf(), revision)
+        val network = Network(mockk(), intArrayOf(), revision)
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
 
@@ -119,7 +119,7 @@ internal class NetworkTest {
     @Test
     fun `Fail to synchronise with wrong id`() = runBlocking {
         val revision = 420
-        val network = Network(mockk(), byteArrayOf(), intArrayOf(), revision)
+        val network = Network(mockk(), intArrayOf(), revision)
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
 
@@ -140,7 +140,7 @@ internal class NetworkTest {
     @Test
     fun `Acknowledge client`() = runBlocking {
         mockkStatic("world.gregs.rs2.file.JagexTypesKt")
-        val network = Network(mockk(), byteArrayOf(), intArrayOf(), 0)
+        val network = Network(mockk(), intArrayOf(), 0)
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
 
@@ -154,7 +154,7 @@ internal class NetworkTest {
 
     @Test
     fun `Don't acknowledge wrong opcode`() = runBlocking {
-        val network = Network(mockk(), byteArrayOf(), intArrayOf(), 0)
+        val network = Network(mockk(), intArrayOf(), 0)
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
 
@@ -175,7 +175,7 @@ internal class NetworkTest {
     @Test
     fun `Don't acknowledge wrong session id`() = runBlocking {
         mockkStatic("world.gregs.rs2.file.JagexTypesKt")
-        val network = Network(mockk(), byteArrayOf(), intArrayOf(), 0)
+        val network = Network(mockk(), intArrayOf(), 0)
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
 
@@ -199,7 +199,7 @@ internal class NetworkTest {
         mockkStatic("world.gregs.rs2.file.JagexTypesKt")
         dynamicTest("Verify status logged ${if (opcode == 3) "out" else "in"}") {
             runBlocking {
-                val network = Network(mockk(), byteArrayOf(), intArrayOf(), 0)
+                val network = Network(mockk(), intArrayOf(), 0)
                 val read: ByteReadChannel = mockk()
                 val write: ByteWriteChannel = mockk()
 
@@ -223,7 +223,7 @@ internal class NetworkTest {
         mockkStatic("world.gregs.rs2.file.JagexTypesKt")
         dynamicTest("Invalid status logged ${if (opcode == 3) "out" else "in"}") {
             runBlocking {
-                val network = Network(mockk(), byteArrayOf(), intArrayOf(), 0)
+                val network = Network(mockk(), intArrayOf(), 0)
                 val read: ByteReadChannel = mockk()
                 val write: ByteWriteChannel = mockk()
 
@@ -241,52 +241,5 @@ internal class NetworkTest {
                 }
             }
         }
-    }
-
-    @Test
-    fun `Get cache version table`() {
-        val versionTable = byteArrayOf(124, -10)
-        val network = Network(mockk(), versionTable, intArrayOf(), 0)
-        val data = network.getData(255, 255)
-        assertArrayEquals(versionTable, data)
-    }
-
-    @Test
-    fun `Get cache index255`() {
-        val cache: CacheLibrary = mockk()
-        val network = Network(cache, byteArrayOf(), intArrayOf(), 0)
-        val index: Index255 = mockk()
-        every { cache.index255 } returns index
-        val sector: ArchiveSector = mockk()
-        every { index.readArchiveSector(10) } returns sector
-        val payload = byteArrayOf(1, 2, 3)
-        every { sector.data } returns payload
-        val data = network.getData(255, 10)
-        assertArrayEquals(payload, data)
-    }
-
-    @Test
-    fun `Get cache index`() {
-        val cache: CacheLibrary = mockk()
-        val network = Network(cache, byteArrayOf(), intArrayOf(), 0)
-        val index: Index = mockk()
-        every { cache.index(11) } returns index
-        val sector: ArchiveSector = mockk()
-        every { index.readArchiveSector(0) } returns sector
-        val payload = byteArrayOf(1, 2, 3)
-        every { sector.data } returns payload
-        val data = network.getData(11, 0)
-        assertArrayEquals(payload, data)
-    }
-
-    @Test
-    fun `Get invalid cache archive`() {
-        val cache: CacheLibrary = mockk()
-        val network = Network(cache, byteArrayOf(), intArrayOf(), 0)
-        val index: Index = mockk()
-        every { cache.index(11) } returns index
-        every { index.readArchiveSector(0) } returns null
-        val data = network.getData(11, 0)
-        assertNull(data)
     }
 }

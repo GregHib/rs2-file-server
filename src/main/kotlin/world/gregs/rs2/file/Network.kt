@@ -1,6 +1,5 @@
 package world.gregs.rs2.file
 
-import com.displee.cache.CacheLibrary
 import com.github.michaelbull.logging.InlineLogger
 import io.ktor.network.selector.*
 import io.ktor.network.sockets.*
@@ -9,8 +8,7 @@ import kotlinx.coroutines.*
 import java.util.concurrent.Executors
 
 class Network(
-    private val cache: CacheLibrary,
-    private val versionTable: ByteArray,
+    private val server: FileServer,
     private val prefetchKeys: IntArray,
     private val revision: Int
 ) {
@@ -23,6 +21,10 @@ class Network(
     private lateinit var dispatcher: ExecutorCoroutineDispatcher
     private var running = false
 
+    /**
+     * Start the server and begin creating a new coroutine for every new connection accepted
+     * @param threads a fixed number or 0 to dynamically allocate based on need
+     */
     fun start(port: Int, threads: Int) = runBlocking {
         val executor = if (threads == 0) Executors.newCachedThreadPool() else Executors.newFixedThreadPool(threads)
         dispatcher = executor.asCoroutineDispatcher()
@@ -53,6 +55,9 @@ class Network(
         }
     }
 
+    /**
+     * If the client is up-to-date and in the correct state send it the [prefetchKeys] list so it knows what indices are available to request
+     */
     suspend fun synchronise(read: ByteReadChannel, write: ByteWriteChannel) {
         val opcode = read.readByte().toInt()
         if (opcode != SYNCHRONISE) {
@@ -76,6 +81,9 @@ class Network(
         }
     }
 
+    /**
+     * Confirm the client got our message and is ready to start sending file requests
+     */
     suspend fun acknowledge(read: ByteReadChannel, write: ByteWriteChannel): Boolean {
         val opcode = read.readByte().toInt()
         if (opcode != ACKNOWLEDGE) {
@@ -88,6 +96,9 @@ class Network(
         return verify(read, write, ACKNOWLEDGE_ID)
     }
 
+    /**
+     * Confirm a session value send by the client is as the server [expected]
+     */
     suspend fun verify(read: ByteReadChannel, write: ByteWriteChannel, expected: Int): Boolean {
         val id = read.readMedium()
         if (id != expected) {
@@ -109,37 +120,20 @@ class Network(
         }
     }
 
+    /**
+     * Verify status updates and pass requests onto the [server] to fulfill
+     */
     suspend fun readRequest(read: ByteReadChannel, write: ByteWriteChannel) {
         val opcode = read.readByte().toInt()
         logger.trace { "Request received $opcode." }
         when (opcode) {
             STATUS_LOGGED_OUT, STATUS_LOGGED_IN -> verify(read, write, STATUS_ID)
-            PRIORITY_REQUEST, PREFETCH_REQUEST -> fulfill(read, write, opcode == PREFETCH_REQUEST)
+            PRIORITY_REQUEST, PREFETCH_REQUEST -> server.fulfill(read, write, opcode == PREFETCH_REQUEST)
             else -> {
                 logger.warn { "Unknown request $opcode." }
                 write.close()
             }
         }
-    }
-
-    suspend fun fulfill(read: ByteReadChannel, write: ByteWriteChannel, prefetch: Boolean) {
-        val value = read.readUMedium()
-        val index = value shr 16
-        val archive = value and 0xffff
-        val data = getData(index, archive) ?: return logger.trace { "Unable to fulfill request $index $archive $prefetch." }
-        serve(write, index, archive, data)
-    }
-
-    fun getData(indexId: Int, archiveId: Int): ByteArray? {
-        if (indexId == 255 && archiveId == 255) {
-            return versionTable
-        }
-        val index = if (indexId == 255) cache.index255 else cache.index(indexId)
-        return index?.readArchiveSector(archiveId)?.data
-    }
-
-    suspend fun serve(write: ByteWriteChannel, index: Int, archive: Int, data: ByteArray) {
-        TODO("Not yet implemented")
     }
 
     fun stop() {
