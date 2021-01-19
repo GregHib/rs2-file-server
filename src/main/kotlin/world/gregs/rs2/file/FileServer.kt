@@ -4,6 +4,7 @@ import com.displee.cache.CacheLibrary
 import com.github.michaelbull.logging.InlineLogger
 import java.io.File
 import java.math.BigInteger
+import kotlin.concurrent.thread
 
 fun main() {
     val logger = InlineLogger()
@@ -17,6 +18,7 @@ fun main() {
 
     var revision = 0
     var port = 0
+    var threads = 0
     lateinit var cachePath: String
     lateinit var modulus: BigInteger
     lateinit var exponent: BigInteger
@@ -26,6 +28,7 @@ fun main() {
         when (key) {
             "revision" -> revision = value.toInt()
             "port" -> port = value.toInt()
+            "threads" -> threads = value.toInt()
             "cachePath" -> cachePath = value
             "rsaModulus" -> modulus = BigInteger(value, 16)
             "rsaPrivate" -> exponent = BigInteger(value, 16)
@@ -46,5 +49,7 @@ fun main() {
 
     val network = Network(cache, versionTable, prefetchKeys, revision)
     logger.info { "Loading complete [${System.currentTimeMillis() - start}ms]" }
-    network.start(port)
+    val runtime = Runtime.getRuntime()
+    runtime.addShutdownHook(thread { network.stop() })
+    network.start(port, threads)
 }
