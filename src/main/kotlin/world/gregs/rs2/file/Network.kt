@@ -6,6 +6,7 @@ import com.github.michaelbull.logging.InlineLogger
 class Network(
     private val cache: CacheLibrary,
     private val versionTable: ByteArray,
+    private val prefetchKeys: IntArray,
     private val revision: Int
 ) {
     private val logger = InlineLogger()
