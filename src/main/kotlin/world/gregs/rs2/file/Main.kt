@@ -47,7 +47,7 @@ fun main() {
     }
     logger.info { "Cache loaded." }
 
-    val fileServer = FileServer(cache, versionTable)
+    val fileServer = FileServer(DataProvider(cache), versionTable)
     val network = Network(fileServer, prefetchKeys, revision)
     logger.info { "Loading complete [${System.currentTimeMillis() - start}ms]" }
     val runtime = Runtime.getRuntime()

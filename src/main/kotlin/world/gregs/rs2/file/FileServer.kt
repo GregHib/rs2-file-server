@@ -1,12 +1,11 @@
 package world.gregs.rs2.file
 
-import com.displee.cache.CacheLibrary
 import com.github.michaelbull.logging.InlineLogger
 import io.ktor.utils.io.*
 import kotlin.math.min
 
 class FileServer(
-    private val cache: CacheLibrary,
+    private val provider: DataProvider,
     private val versionTable: ByteArray
 ) {
     private val logger = InlineLogger()
@@ -29,19 +28,16 @@ class FileServer(
         if (index == 255 && archive == 255) {
             return versionTable
         }
-        return if (index == 255)
-            cache.index255?.readArchiveSector(archive)?.data
-        else
-            cache.index(index).readArchiveSector(archive)?.data
+        return provider.data(index, archive)
     }
 
     /**
      * Writes response header followed by the contents of [data] to [write]
      */
     suspend fun serve(write: ByteWriteChannel, index: Int, archive: Int, data: ByteArray, prefetch: Boolean) {
-        logger.trace { "Serving file $index $archive." }
         val compression = data[0].toInt()
         val size = getInt(data[1], data[2], data[3], data[4]) + if (compression != 0) 8 else 4
+        logger.trace { "Serving file $index $archive - $size." }
         write.writeByte(index)
         write.writeShort(archive)
         write.writeByte(if (prefetch) compression or 0x80 else compression)

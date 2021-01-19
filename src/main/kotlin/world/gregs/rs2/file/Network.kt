@@ -15,7 +15,7 @@ class Network(
     private val logger = InlineLogger()
 
     private val exceptionHandler = CoroutineExceptionHandler { context, throwable ->
-        logger.warn(throwable) { "Exception in context: $context" }
+        logger.warn { "${throwable.message} $context" }
     }
 
     private lateinit var dispatcher: ExecutorCoroutineDispatcher
@@ -124,9 +124,7 @@ class Network(
      * Verify status updates and pass requests onto the [server] to fulfill
      */
     suspend fun readRequest(read: ByteReadChannel, write: ByteWriteChannel) {
-        val opcode = read.readByte().toInt()
-        logger.trace { "Request received $opcode." }
-        when (opcode) {
+        when (val opcode = read.readByte().toInt()) {
             STATUS_LOGGED_OUT, STATUS_LOGGED_IN -> verify(read, write, STATUS_ID)
             PRIORITY_REQUEST, PREFETCH_REQUEST -> server.fulfill(read, write, opcode == PREFETCH_REQUEST)
             else -> {
@@ -143,16 +141,16 @@ class Network(
 
     companion object {
         // Session ids
-        private const val ACKNOWLEDGE_ID = 3
-        private const val STATUS_ID = 0
+        const val ACKNOWLEDGE_ID = 3
+        const val STATUS_ID = 0
 
         // Opcodes
-        private const val PREFETCH_REQUEST = 0
-        private const val PRIORITY_REQUEST = 1
-        private const val SYNCHRONISE = 15
-        private const val STATUS_LOGGED_IN = 2
-        private const val STATUS_LOGGED_OUT = 3
-        private const val ACKNOWLEDGE = 6
+        const val PREFETCH_REQUEST = 0
+        const val PRIORITY_REQUEST = 1
+        const val SYNCHRONISE = 15
+        const val STATUS_LOGGED_IN = 2
+        const val STATUS_LOGGED_OUT = 3
+        const val ACKNOWLEDGE = 6
 
         // Response codes
         private const val GAME_UPDATED = 6
