@@ -10,7 +10,9 @@ import java.util.concurrent.Executors
 class Network(
     private val server: FileServer,
     private val prefetchKeys: IntArray,
-    private val revision: Int
+    private val revision: Int,
+    private val acknowledgeId: Int,
+    private val statusId: Int,
 ) {
     private val logger = InlineLogger()
 
@@ -93,7 +95,7 @@ class Network(
             return false
         }
 
-        return verify(read, write, ACKNOWLEDGE_ID)
+        return verify(read, write, acknowledgeId)
     }
 
     /**
@@ -125,7 +127,7 @@ class Network(
      */
     suspend fun readRequest(read: ByteReadChannel, write: ByteWriteChannel) {
         when (val opcode = read.readByte().toInt()) {
-            STATUS_LOGGED_OUT, STATUS_LOGGED_IN -> verify(read, write, STATUS_ID)
+            STATUS_LOGGED_OUT, STATUS_LOGGED_IN -> verify(read, write, statusId)
             PRIORITY_REQUEST, PREFETCH_REQUEST -> server.fulfill(read, write, opcode == PREFETCH_REQUEST)
             else -> {
                 logger.warn { "Unknown request $opcode." }
@@ -140,10 +142,6 @@ class Network(
     }
 
     companion object {
-        // Session ids
-        const val ACKNOWLEDGE_ID = 3
-        const val STATUS_ID = 0
-
         // Opcodes
         const val PREFETCH_REQUEST = 0
         const val PRIORITY_REQUEST = 1

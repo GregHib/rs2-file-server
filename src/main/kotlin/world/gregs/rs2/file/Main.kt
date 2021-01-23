@@ -21,6 +21,8 @@ object Main {
         var revision = 0
         var port = 0
         var threads = 0
+        var acknowledgeId = 3
+        var statusId = 0
         lateinit var cachePath: String
         lateinit var modulus: BigInteger
         lateinit var exponent: BigInteger
@@ -31,6 +33,8 @@ object Main {
                 "revision" -> revision = value.toInt()
                 "port" -> port = value.toInt()
                 "threads" -> threads = value.toInt()
+                "acknowledgeId" -> acknowledgeId = value.toInt()
+                "statusId" -> statusId = value.toInt()
                 "cachePath" -> cachePath = value
                 "rsaModulus" -> modulus = BigInteger(value, 16)
                 "rsaPrivate" -> exponent = BigInteger(value, 16)
@@ -50,7 +54,7 @@ object Main {
         logger.info { "Cache loaded." }
 
         val fileServer = FileServer(DataProvider(cache), versionTable)
-        val network = Network(fileServer, prefetchKeys, revision)
+        val network = Network(fileServer, prefetchKeys, revision, acknowledgeId, statusId)
         logger.info { "Loading complete [${System.currentTimeMillis() - start}ms]" }
         val runtime = Runtime.getRuntime()
         runtime.addShutdownHook(thread(start = false) { network.stop() })

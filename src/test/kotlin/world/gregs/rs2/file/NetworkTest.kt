@@ -17,7 +17,7 @@ internal class NetworkTest {
     fun `Connect, sync, ack and fulfill`() = runBlockingTest {
         mockkStatic("world.gregs.rs2.file.JagexTypesKt")
         mockkStatic("io.ktor.network.sockets.SocketsKt")
-        val network = spyk(Network(mockk(), intArrayOf(), 0))
+        val network = spyk(Network(mockk(), intArrayOf(), 0, 0, 0))
         val socket: Socket = mockk()
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
@@ -42,7 +42,7 @@ internal class NetworkTest {
     fun `Failed ack won't fulfill`() = runBlockingTest {
         mockkStatic("world.gregs.rs2.file.JagexTypesKt")
         mockkStatic("io.ktor.network.sockets.SocketsKt")
-        val network = spyk(Network(mockk(), intArrayOf(), 0))
+        val network = spyk(Network(mockk(), intArrayOf(), 0, 0, 0))
         val socket: Socket = mockk()
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
@@ -69,7 +69,7 @@ internal class NetworkTest {
     fun `Synchronise client and server`() = runBlockingTest {
         val revision = 1337
         val keys = intArrayOf(0xffff, 0xfff, 0xff, 0xf)
-        val network = Network(mockk(), keys, revision)
+        val network = Network(mockk(), keys, revision, 0, 0)
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
 
@@ -93,7 +93,7 @@ internal class NetworkTest {
     @Test
     fun `Fail to synchronise with wrong revision`() = runBlockingTest {
         val revision = 10
-        val network = Network(mockk(), intArrayOf(), revision)
+        val network = Network(mockk(), intArrayOf(), revision, 0, 0)
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
 
@@ -117,7 +117,7 @@ internal class NetworkTest {
     @Test
     fun `Fail to synchronise with wrong id`() = runBlockingTest {
         val revision = 420
-        val network = Network(mockk(), intArrayOf(), revision)
+        val network = Network(mockk(), intArrayOf(), revision, 0, 0)
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
 
@@ -138,7 +138,7 @@ internal class NetworkTest {
     @Test
     fun `Acknowledge client`() = runBlockingTest {
         mockkStatic("world.gregs.rs2.file.JagexTypesKt")
-        val network = Network(mockk(), intArrayOf(), 0)
+        val network = Network(mockk(), intArrayOf(), 0, 3, 0)
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
 
@@ -152,7 +152,7 @@ internal class NetworkTest {
 
     @Test
     fun `Don't acknowledge wrong opcode`() = runBlockingTest {
-        val network = Network(mockk(), intArrayOf(), 0)
+        val network = Network(mockk(), intArrayOf(), 0, 3, 0)
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
 
@@ -173,7 +173,7 @@ internal class NetworkTest {
     @Test
     fun `Don't acknowledge wrong session id`() = runBlockingTest {
         mockkStatic("world.gregs.rs2.file.JagexTypesKt")
-        val network = Network(mockk(), intArrayOf(), 0)
+        val network = Network(mockk(), intArrayOf(), 0, 0, 0)
         val read: ByteReadChannel = mockk()
         val write: ByteWriteChannel = mockk()
 
@@ -197,7 +197,7 @@ internal class NetworkTest {
         mockkStatic("world.gregs.rs2.file.JagexTypesKt")
         dynamicTest("Verify status logged ${if (opcode == 3) "out" else "in"}") {
             runBlockingTest {
-                val network = Network(mockk(), intArrayOf(), 0)
+                val network = Network(mockk(), intArrayOf(), 0, 0, 0)
                 val read: ByteReadChannel = mockk()
                 val write: ByteWriteChannel = mockk()
 
@@ -221,7 +221,7 @@ internal class NetworkTest {
         mockkStatic("world.gregs.rs2.file.JagexTypesKt")
         dynamicTest("Invalid status logged ${if (opcode == 3) "out" else "in"}") {
             runBlockingTest {
-                val network = Network(mockk(), intArrayOf(), 0)
+                val network = Network(mockk(), intArrayOf(), 0, 0, 0)
                 val read: ByteReadChannel = mockk()
                 val write: ByteWriteChannel = mockk()
 
